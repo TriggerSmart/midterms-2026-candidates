@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#070b11" />
+  <title>2026 Midterms OSINT Dashboard</title>
+  <meta name="description" content="Source-grounded OSINT dashboard for 2026 U.S. House, Senate and gubernatorial candidates, forecasts, public records and campaign finance." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+  <script type="module" src="js/app.mjs"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark" aria-hidden="true">OS</div>
+        <div>
+          <div class="eyebrow">2026 ELECTION INTELLIGENCE</div>
+          <h1>MIDTERMS OSINT</h1>
+        </div>
+      </div>
+      <div class="top-status">
+        <div class="status-chip"><span class="dot amber"></span><strong id="countdown">Election Day</strong><span>Nov 3, 2026</span></div>
+        <div class="status-chip"><span class="dot" id="sourceDot"></span><strong id="sourceStatus">Loading sources</strong><span id="lastSync">—</span></div>
+        <button class="icon-btn" id="refreshBtn" title="Refresh public sources" aria-label="Refresh public sources">↻</button>
+        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+
+    <section class="notice-bar">
+      <strong>Source discipline:</strong> candidate/race data uses a structured public 2026 race roster plus FEC cross-checks. Forecasts are third-party analysis, never official results. Public-record risk is a transparent evidence index, not voting advice.
+    </section>
+
+    <main>
+      <section class="control-panel panel">
+        <div class="office-tabs" role="tablist" aria-label="Office filter">
+          <button class="tab active" data-office="ALL">All races</button>
+          <button class="tab" data-office="H">U.S. House</button>
+          <button class="tab" data-office="S">U.S. Senate</button>
+          <button class="tab" data-office="G">Governor</button>
+        </div>
+        <div class="filters">
+          <label class="searchbox"><span>⌕</span><input id="searchInput" type="search" placeholder="Search candidate, state or race…" /></label>
+          <select id="stateFilter" aria-label="State filter"><option value="ALL">All states</option></select>
+          <select id="partyFilter" aria-label="Party filter">
+            <option value="ALL">All parties</option>
+            <option value="D">Democratic</option>
+            <option value="R">Republican</option>
+            <option value="I">Independent</option>
+            <option value="L">Libertarian</option>
+            <option value="G">Green</option>
+            <option value="O">Other</option>
+          </select>
+          <select id="riskFilter" aria-label="Public-record risk filter">
+            <option value="ALL">All risk levels</option>
+            <option value="Unassessed">Unassessed</option>
+            <option value="Low">Low</option>
+            <option value="Guarded">Guarded</option>
+            <option value="Elevated">Elevated</option>
+            <option value="High">High</option>
+            <option value="Severe">Severe</option>
+          </select>
+          <select id="sortFilter" aria-label="Sort candidates">
+            <option value="race">Sort: race</option>
+            <option value="name">Sort: name</option>
+            <option value="forecast">Sort: forecast</option>
+            <option value="risk">Sort: risk</option>
+          </select>
+          <button id="clearFilters" class="secondary-btn">Clear</button>
+        </div>
+      </section>
+
+      <section class="stat-grid" aria-label="Election dashboard totals">
+        <article class="stat-card"><span>Candidates loaded</span><strong id="candidateCount">—</strong><small id="candidateCountSub">from current source set</small></article>
+        <article class="stat-card"><span>Races represented</span><strong id="raceCount">—</strong><small>House + Senate + governors</small></article>
+        <article class="stat-card"><span>Races with projections</span><strong id="forecastCount">—</strong><small>model + published rating cross-checks</small></article>
+        <article class="stat-card"><span>Selected state</span><strong id="selectedStateStat">National</strong><small id="selectedStateSub">click the map to focus</small></article>
+      </section>
+
+      <section class="workspace-grid">
+        <div class="left-stack">
+          <article class="panel map-panel">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">INTERACTIVE MAP</div>
+                <h2>Race Map</h2>
+              </div>
+              <div class="segmented" id="mapModeControl">
+                <button class="active" data-mapmode="races">Race density</button>
+                <button data-mapmode="forecast">Forecast</button>
+              </div>
+            </div>
+            <div id="map" class="map-area" aria-label="Interactive United States election map"></div>
+            <div id="mapFallback" class="map-fallback hidden">The map library did not load. Candidate filters and profiles still work.</div>
+            <div class="map-footer">
+              <div id="mapLegend" class="legend"></div>
+              <div class="muted" id="mapNote">Click a state to filter candidates and races.</div>
+            </div>
+          </article>
+
+          <article class="panel state-intel-panel">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">STATE / RACE INTEL</div>
+                <h2 id="intelTitle">National overview</h2>
+              </div>
+              <button class="secondary-btn hidden" id="clearStateBtn">Clear state</button>
+            </div>
+            <div id="raceIntel" class="race-intel"><div class="skeleton block"></div></div>
+          </article>
+
+          <article class="panel health-panel">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">DATA HEALTH</div>
+                <h2>Source Monitor</h2>
+              </div>
+              <button class="secondary-btn" id="aboutDataBtn">Methodology</button>
+            </div>
+            <div id="sourceHealth" class="source-health"></div>
+          </article>
+        </div>
+
+        <article class="panel candidate-panel">
+          <div class="panel-head sticky-head">
+            <div>
+              <div class="eyebrow">CANDIDATE INDEX</div>
+              <h2 id="candidateHeading">All candidates</h2>
+            </div>
+            <div class="results-meta"><strong id="filteredCount">0</strong><span>matches</span></div>
+          </div>
+          <div id="candidateGrid" class="candidate-grid">
+            <div class="candidate-skeleton"></div><div class="candidate-skeleton"></div><div class="candidate-skeleton"></div>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <div><strong>2026 Midterms OSINT</strong> · Static GitHub Pages dashboard · No login required</div>
+      <div>Public sources can change. Verify consequential claims against the linked primary record before publication.</div>
+    </footer>
+  </div>
+
+  <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
+  <aside id="profileDrawer" class="profile-drawer" aria-hidden="true">
+    <button class="drawer-close" id="closeDrawer" aria-label="Close candidate profile">×</button>
+    <div id="profileContent" class="profile-content"></div>
+  </aside>
+
+  <dialog id="settingsDialog" class="dialog">
+    <form method="dialog">
+      <div class="dialog-head"><div><div class="eyebrow">SETTINGS</div><h2>Data access</h2></div><button class="drawer-close" value="cancel">×</button></div>
+      <p>The dashboard works without setup using the FEC public <code>DEMO_KEY</code>. A free personal FEC API key only improves rate limits for heavy research.</p>
+      <label class="field-label">FEC API key<input id="fecKeyInput" autocomplete="off" placeholder="DEMO_KEY" /></label>
+      <div class="dialog-actions"><button class="secondary-btn" id="resetFecKey" type="button">Use DEMO_KEY</button><button class="primary-btn" id="saveSettings" value="default">Save</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="methodDialog" class="dialog wide-dialog">
+    <form method="dialog">
+      <div class="dialog-head"><div><div class="eyebrow">METHODOLOGY</div><h2>What the dashboard means</h2></div><button class="drawer-close" value="cancel">×</button></div>
+      <div class="method-grid">
+        <section><h3>Candidate roster</h3><p>The primary nationwide race layer is a structured 2026 House, Senate and governor roster, with a separate minor-party/independent file merged into each race. Federal identity and finance are cross-checked against the Federal Election Commission when a profile is opened. State ballot authorities remain the final authority.</p></section>
+        <section><h3>Forecasts</h3><p>The projection layer displays a third-party race model for nationwide coverage and overlays published categorical rating consensus where those tables can be matched. Neither is an official result or this site's own prediction.</p></section>
+        <section><h3>Issue positions</h3><p>Issue panels show source sentences mentioning a policy topic. They do not infer a position when the source text does not state one. Missing data is shown as missing.</p></section>
+        <section><h3>Public-record risk</h3><p>The score only counts operator-verified public legal, ethics, regulatory or compliance evidence. Ideology, party, protected traits, family, health, rumor and ordinary controversy are never scored.</p></section>
+      </div>
+      <table class="method-table">
+        <thead><tr><th>Verified evidence category</th><th>Points</th></tr></thead>
+        <tbody>
+          <tr><td>Criminal conviction involving public office/fraud</td><td>35</td></tr>
+          <tr><td>Official ethics finding / censure / sanction</td><td>25</td></tr>
+          <tr><td>Final civil or regulatory finding</td><td>20</td></tr>
+          <tr><td>Active official criminal charge</td><td>20</td></tr>
+          <tr><td>FEC enforcement finding</td><td>15</td></tr>
+          <tr><td>Active official ethics/regulatory investigation</td><td>10</td></tr>
+          <tr><td>Substantiated conflict/disclosure finding</td><td>10</td></tr>
+          <tr><td>Repeated filing noncompliance</td><td>5</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">No reviewed evidence = <strong>Unassessed</strong>, not “Low.” Charges and investigations are not findings of guilt and are labeled separately.</p>
+    </form>
+  </dialog>
+</body>
+</html>

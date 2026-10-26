@@ -1,0 +1,13 @@
+{
+  "scope": "2026 U.S. House, U.S. Senate, and gubernatorial elections",
+  "refresh_minutes": 15,
+  "runtime_sources": [
+    {"name":"ElectIndex races","url":"https://raw.githubusercontent.com/ElectIndex/26_us_forecast_data/main/races.csv"},
+    {"name":"ElectIndex candidates","url":"https://raw.githubusercontent.com/ElectIndex/26_us_forecast_data/main/candidates.csv"},
+    {"name":"ElectIndex third parties","url":"https://raw.githubusercontent.com/ElectIndex/26_us_forecast_data/main/third_parties.csv"},
+    {"name":"ElectIndex candidate metadata","url":"https://raw.githubusercontent.com/ElectIndex/26_us_forecast_data/main/candidate_meta.csv"},
+    {"name":"ElectIndex race projections","url":"https://raw.githubusercontent.com/ElectIndex/26_us_forecast_data/main/output/races_summary.csv"},
+    {"name":"Wikipedia API","url":"https://en.wikipedia.org/w/api.php"},
+    {"name":"OpenFEC API","url":"https://api.open.fec.gov/v1"}
+  ]
+}
